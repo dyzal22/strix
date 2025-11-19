@@ -1,13 +1,12 @@
 FROM kalilinux/kali-rolling
 
-# Set environment agar tidak ada dialog interaktif saat install
+# Set environment agar tidak ada dialog interaktif
 ENV DEBIAN_FRONTEND=noninteractive
 
-# --- SOLUSI ERROR KAMU ---
-# Mengizinkan pip untuk menginstall paket ke sistem global Kali Linux
+# Mengizinkan install paket ke sistem global (bypass error externally-managed)
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
-# Update repo kali linux
+# Update repo
 RUN apt-get update
 
 # TAHAP 1: Install Base System & Python
@@ -31,7 +30,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # TAHAP 3: Install Browser & dependencies lainnya
-# libasound2t64 adalah nama baru untuk libasound2 di Kali Rolling
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs npm pipx \
     libcap2-bin tmux gdb \
@@ -48,9 +46,8 @@ WORKDIR /workspace
 COPY . /workspace
 
 # Install Python Dependencies
-# Perintah saya ubah jadi 'pip install .' agar otomatis baca pyproject.toml dengan benar
-RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip3 install --no-cache-dir .
+# PERUBAHAN DISINI: Kita langsung install app-nya tanpa upgrade pip dulu
+RUN pip3 install --no-cache-dir .
 
 # Setup Entrypoint
 COPY containers/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
