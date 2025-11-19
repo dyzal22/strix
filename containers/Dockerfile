@@ -1,14 +1,18 @@
+# TAHAP 1: Ambil Caido dari Sumber Resminya
+# Kita pull image resmi Caido, jadi tidak perlu wget manual yang sering error
+FROM caido/caido:latest AS caido_source
+
+# TAHAP 2: Build Image Utama (Kali Linux)
 FROM kalilinux/kali-rolling
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
-# Host localhost aman untuk container internal
 ENV CAIDO_HOST=127.0.0.1
 ENV CAIDO_PORT=8080
 
 # 1. Install Base System & Tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget git vim nano unzip tar \
+    git vim nano unzip tar \
     ca-certificates gnupg lsb-release \
     build-essential software-properties-common \
     python3 python3-pip python3-dev python3-venv python3-setuptools \
@@ -22,14 +26,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3-tools && \
     rm -rf /var/lib/apt/lists/*
 
-# 2. Download Caido (Link Langsung - Versi v0.53.0)
-# Kita pakai link GitHub Release langsung agar tidak error pencarian
-RUN wget -O caido.tar.gz https://github.com/caido/caido/releases/download/v0.53.0/caido-cli-v0.53.0-linux-x86_64.tar.gz && \
-    tar -xzf caido.tar.gz && \
-    # Cari file binary (biasanya bernama caido-cli) lalu rename jadi caido dan pindahkan
-    find . -type f -name "caido-cli" -o -name "caido" | head -n 1 | xargs -I {} mv {} /usr/local/bin/caido && \
-    chmod +x /usr/local/bin/caido && \
-    rm -rf caido.tar.gz *caido*
+# 2. Copy Binary Caido (JURUS KUNCI)
+# Kita ambil file 'caido' langsung dari image tahap 1 tadi
+COPY --from=caido_source /usr/bin/caido /usr/local/bin/caido
+# Pastikan file bisa dieksekusi
+RUN chmod +x /usr/local/bin/caido
 
 # 3. Setup Project
 WORKDIR /workspace
