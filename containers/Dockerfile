@@ -2,11 +2,11 @@ FROM kalilinux/kali-rolling
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
-# Set host ke 127.0.0.1 agar aman & stabil
+# Host localhost aman untuk container internal
 ENV CAIDO_HOST=127.0.0.1
 ENV CAIDO_PORT=8080
 
-# 1. Install Base System & Tools (Termasuk jq & curl)
+# 1. Install Base System & Tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget git vim nano unzip tar \
     ca-certificates gnupg lsb-release \
@@ -22,14 +22,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3-tools && \
     rm -rf /var/lib/apt/lists/*
 
-# 2. Download Caido (Metode Cerdas via GitHub API)
-# Script ini otomatis cari link 'linux-x86_64.tar.gz' di release terbaru
-RUN echo "Downloading Caido..." && \
-    curl -s https://api.github.com/repos/caido/caido/releases/latest \
-    | jq -r '.assets[] | select(.name | contains("linux-x86_64.tar.gz") and (contains("cli") or contains("caido-v"))) | .browser_download_url' | head -n 1 \
-    | xargs wget -O caido.tar.gz && \
+# 2. Download Caido (Link Langsung - Versi v0.53.0)
+# Kita pakai link GitHub Release langsung agar tidak error pencarian
+RUN wget -O caido.tar.gz https://github.com/caido/caido/releases/download/v0.53.0/caido-cli-v0.53.0-linux-x86_64.tar.gz && \
     tar -xzf caido.tar.gz && \
-    # Cari file binary hasil ekstrak (namanya bisa beda-beda dikit) lalu pindahkan
+    # Cari file binary (biasanya bernama caido-cli) lalu rename jadi caido dan pindahkan
     find . -type f -name "caido-cli" -o -name "caido" | head -n 1 | xargs -I {} mv {} /usr/local/bin/caido && \
     chmod +x /usr/local/bin/caido && \
     rm -rf caido.tar.gz *caido*
