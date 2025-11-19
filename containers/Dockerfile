@@ -1,14 +1,18 @@
 FROM kalilinux/kali-rolling
 
+# Setup Environment
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
-# 1. Install Base System & Tools
+# Set Variable Caido agar tidak perlu setup di Railway lagi
+ENV CAIDO_HOST=127.0.0.1
+ENV CAIDO_PORT=8080
+
+# 1. Install Base System & Tools (Termasuk Curl)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget curl git vim nano unzip tar \
+    curl wget git vim nano unzip tar \
     ca-certificates gnupg lsb-release \
     build-essential software-properties-common \
-    gcc libc6-dev pkg-config libpcap-dev libssl-dev \
     python3 python3-pip python3-dev python3-venv python3-setuptools \
     golang-go net-tools dnsutils whois jq parallel ripgrep grep \
     less procps htop iproute2 iputils-ping netcat-traditional \
@@ -20,19 +24,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3-tools && \
     rm -rf /var/lib/apt/lists/*
 
-# 2. Setup Caido (MANUAL INSTALL)
-# Kita download manual supaya tidak gagal saat runtime
-RUN wget https://storage.googleapis.com/caido-releases/v0.41.0/caido-linux-x86_64-v0.41.0.tar.gz -O caido.tar.gz && \
-    tar -xzf caido.tar.gz && \
-    mv caido /usr/local/bin/caido && \
-    chmod +x /usr/local/bin/caido && \
-    rm caido.tar.gz
+# 2. Install Caido (Pakai Script Resmi)
+# Ini akan otomatis download versi terbaru yang valid
+RUN curl -fsSL https://caido.io/install.sh | sh && \
+    mv /root/.local/bin/caido /usr/local/bin/caido || mv /usr/bin/caido /usr/local/bin/caido
 
 # 3. Setup Project
 WORKDIR /workspace
 COPY . /workspace
 
-# 4. Install Python Apps
+# 4. Install Python Dependencies
 RUN pip3 install --no-cache-dir .
 
 # 5. Setup Entrypoint
