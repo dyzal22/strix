@@ -8,7 +8,7 @@ COPY --from=source /usr/local/bin /tmp/local_bin
 RUN find /tmp -type f \( -name "caido" -o -name "caido-cli" \) -exec cp {} /caido_final \; && \
     chmod +x /caido_final
 
-# --- TAHAP 3: DOCKER CLIENT (Tetap butuh untuk lolos cek awal) ---
+# --- TAHAP 3: DOCKER CLIENT ---
 FROM alpine:latest AS docker_downloader
 RUN apk add --no-cache curl tar
 RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-24.0.7.tgz -o docker.tgz && \
@@ -47,7 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3-tools && \
     rm -rf /var/lib/apt/lists/*
 
-# 4. COPY Binary (Caido & Docker)
+# 4. COPY Binary
 COPY --from=finder /caido_final /usr/local/bin/caido
 COPY --from=docker_downloader /docker_binary /usr/local/bin/docker
 
@@ -58,13 +58,10 @@ COPY . /workspace
 # 6. Install Python Dependencies
 RUN pip3 install --no-cache-dir .
 
-# 7. OPREK CODINGAN (THE SURGERY V2 - LEBIH PINTAR) 🩺
-# Penjelasan: 
-# '/def /!s/...' artinya: Lakukan replace KECUALI (!) di baris yang mengandung kata "def "
-# Kita ubah panggilannya menjadi 'pass' (perintah kosong di python)
+# 7. OPREK CODINGAN (THE SURGERY V3 - CLEAN SWEEP) 🩺
+# Perbaikan: Menggunakan .* untuk menghapus sisa 'from None' di ujung baris
 RUN find /usr/local/lib -name "main.py" | grep "strix/interface" | xargs sed -i '/def /!s/pull_docker_image()/pass/g' && \
-    # Tambahan: Matikan juga fungsi cek koneksi di utils.py agar tidak raise Error
-    find /usr/local/lib -name "utils.py" | grep "strix/interface" | xargs sed -i 's/raise RuntimeError("Docker not available")/return True/g'
+    find /usr/local/lib -name "utils.py" | grep "strix/interface" | xargs sed -i 's/raise RuntimeError("Docker not available").*/return True/g'
 
 # 8. Entrypoint
 COPY containers/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
