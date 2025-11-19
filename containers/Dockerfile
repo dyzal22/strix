@@ -1,14 +1,11 @@
-# --- TAHAP 1: SUMBER (Ambil Image Resmi) ---
+# --- TAHAP 1: SUMBER (Ambil Image Resmi Caido) ---
 FROM caido/caido:latest AS source
 
-# --- TAHAP 2: PENCARI (Alpine Ringan) ---
+# --- TAHAP 2: PENCARI BINARY ---
 FROM alpine:latest AS finder
-# Kita copy folder /usr/bin dari image Caido (biasanya binary ada disini)
 COPY --from=source /usr/bin /tmp/bin
-# Kita copy folder /usr/local/bin juga untuk jaga-jaga
 COPY --from=source /usr/local/bin /tmp/local_bin
-# Kita copy root / (hati-hati ini besar, tapi kita hanya ambil binary)
-# Trik: Kita cari file bernama 'caido' atau 'caido-cli' dan pindahkan ke satu tempat pasti
+# Cari file 'caido' atau 'caido-cli' dan amankan
 RUN find /tmp -type f \( -name "caido" -o -name "caido-cli" \) -exec cp {} /caido_final \; && \
     chmod +x /caido_final
 
@@ -20,9 +17,10 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ENV CAIDO_HOST=127.0.0.1
 ENV CAIDO_PORT=8080
 
-# 1. Install Base System (Hanya yang penting)
+# 1. Install Base System + DOCKER CLI
+# PERUBAHAN DISINI: Saya menambahkan 'docker.io'
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget git unzip tar \
+    curl wget git unzip tar docker.io \
     ca-certificates gnupg lsb-release \
     build-essential software-properties-common \
     python3 python3-pip python3-dev python3-venv python3-setuptools && \
@@ -43,7 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3-tools && \
     rm -rf /var/lib/apt/lists/*
 
-# 4. COPY Binary Caido dari TAHAP 2 (Hasil Pencarian)
+# 4. COPY Binary Caido dari TAHAP 2
 COPY --from=finder /caido_final /usr/local/bin/caido
 
 # 5. Setup Project
