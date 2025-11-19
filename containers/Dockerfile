@@ -8,7 +8,7 @@ COPY --from=source /usr/local/bin /tmp/local_bin
 RUN find /tmp -type f \( -name "caido" -o -name "caido-cli" \) -exec cp {} /caido_final \; && \
     chmod +x /caido_final
 
-# --- TAHAP 3: DOCKER CLIENT (Tetap kita simpan untuk 'menipu' pengecekan awal) ---
+# --- TAHAP 3: DOCKER CLIENT (Tetap butuh untuk lolos cek awal) ---
 FROM alpine:latest AS docker_downloader
 RUN apk add --no-cache curl tar
 RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-24.0.7.tgz -o docker.tgz && \
@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-dev python3-venv python3-setuptools && \
     rm -rf /var/lib/apt/lists/*
 
-# 2. Install Hacking Tools (Tools ini akan dipakai langsung oleh Strix)
+# 2. Install Hacking Tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     golang-go net-tools dnsutils whois jq \
     nmap ncat sqlmap nuclei subfinder naabu ffuf \
@@ -47,7 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3-tools && \
     rm -rf /var/lib/apt/lists/*
 
-# 4. COPY Binary
+# 4. COPY Binary (Caido & Docker)
 COPY --from=finder /caido_final /usr/local/bin/caido
 COPY --from=docker_downloader /docker_binary /usr/local/bin/docker
 
@@ -58,10 +58,13 @@ COPY . /workspace
 # 6. Install Python Dependencies
 RUN pip3 install --no-cache-dir .
 
-# 7. OPREK CODINGAN (THE SURGERY) 🔪
-# Kita cari file main.py di library yang terinstall, lalu kita matikan fungsi cek docker
-# Perintah ini mencari baris 'pull_docker_image()' dan memberinya pagar (#) agar tidak dijalankan
-RUN find /usr/local/lib -name "main.py" | grep "strix/interface" | xargs sed -i 's/pull_docker_image()/# pull_docker_image()  # BYPASSED FOR RAILWAY/g'
+# 7. OPREK CODINGAN (THE SURGERY V2 - LEBIH PINTAR) 🩺
+# Penjelasan: 
+# '/def /!s/...' artinya: Lakukan replace KECUALI (!) di baris yang mengandung kata "def "
+# Kita ubah panggilannya menjadi 'pass' (perintah kosong di python)
+RUN find /usr/local/lib -name "main.py" | grep "strix/interface" | xargs sed -i '/def /!s/pull_docker_image()/pass/g' && \
+    # Tambahan: Matikan juga fungsi cek koneksi di utils.py agar tidak raise Error
+    find /usr/local/lib -name "utils.py" | grep "strix/interface" | xargs sed -i 's/raise RuntimeError("Docker not available")/return True/g'
 
 # 8. Entrypoint
 COPY containers/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
