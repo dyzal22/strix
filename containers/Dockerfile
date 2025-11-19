@@ -3,11 +3,14 @@ FROM kalilinux/kali-rolling
 # Set environment agar tidak ada dialog interaktif saat install
 ENV DEBIAN_FRONTEND=noninteractive
 
+# --- SOLUSI ERROR KAMU ---
+# Mengizinkan pip untuk menginstall paket ke sistem global Kali Linux
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
 # Update repo kali linux
 RUN apt-get update
 
-# TAHAP 1: Install Base System & Python (Cicilan 1)
-# Kita pecah agar build tidak timeout di satu layer yang berat
+# TAHAP 1: Install Base System & Python
 RUN apt-get install -y --no-install-recommends \
     wget curl git vim nano unzip tar \
     ca-certificates gnupg lsb-release \
@@ -16,7 +19,7 @@ RUN apt-get install -y --no-install-recommends \
     python3 python3-pip python3-dev python3-venv python3-setuptools && \
     rm -rf /var/lib/apt/lists/*
 
-# TAHAP 2: Install Go & Network Tools (Cicilan 2)
+# TAHAP 2: Install Go & Network Tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     golang-go \
     net-tools dnsutils whois \
@@ -27,8 +30,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sqlmap nuclei subfinder naabu ffuf && \
     rm -rf /var/lib/apt/lists/*
 
-# TAHAP 3: Install Browser & dependencies lainnya (Cicilan 3)
-# Perhatikan: libasound2 sudah diganti jadi libasound2t64
+# TAHAP 3: Install Browser & dependencies lainnya
+# libasound2t64 adalah nama baru untuk libasound2 di Kali Rolling
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs npm pipx \
     libcap2-bin tmux gdb \
@@ -45,9 +48,8 @@ WORKDIR /workspace
 COPY . /workspace
 
 # Install Python Dependencies
-# Menggunakan pip dengan timeout lebih lama agar tidak gagal saat download lib besar
+# Perintah saya ubah jadi 'pip install .' agar otomatis baca pyproject.toml dengan benar
 RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip3 install --no-cache-dir -r pyproject.toml || \
     pip3 install --no-cache-dir .
 
 # Setup Entrypoint
